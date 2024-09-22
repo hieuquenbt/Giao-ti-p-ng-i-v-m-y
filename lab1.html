@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý sinh viên</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        /* Giao diện cho thanh menu */
+        nav {
+            background-color: #333;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        nav img {
+            float: left;
+            height: 40px;
+            margin-right: 20px;
+        }
+
+        nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+
+        nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        /* Giao diện khi phần được kích hoạt */
+        section {
+            display: none;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, button {
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        /* Giao diện bảng danh sách sinh viên */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        /* Giao diện nút xóa và sửa */
+        .delete-btn, .edit-btn {
+            padding: 10px;
+            cursor: pointer;
+            color: white;
+            border: none;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .edit-btn {
+            background-color: #ffc107;
+        }
+
+        .edit-btn:hover {
+            background-color: #e0a800;
+        }
+    </style>
+    <!-- Thêm thư viện XLSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <!-- Thanh menu với logo -->
+    <nav>
+        <img src="pro.png" alt="Logo">
+        <a href="#" onclick="showSection('addStudent')">Thêm sinh viên</a>
+        <a href="#" onclick="showSection('viewStudents')">Danh sách sinh viên</a>
+    </nav>
+
+    <!-- Phần thêm sinh viên -->
+    <section id="addStudent" class="active">
+        <h1 id="formTitle">Thêm Sinh Viên</h1>
+        <form id="addStudentForm">
+            <label for="studentId">Mã sinh viên:</label>
+            <input type="text" id="studentId" placeholder="Nhập mã sinh viên" required>
+
+            <label for="studentName">Tên sinh viên:</label>
+            <input type="text" id="studentName" placeholder="Nhập tên sinh viên" required>
+
+            <label for="studentAge">Tuổi sinh viên:</label>
+            <input type="number" id="studentAge" placeholder="Nhập tuổi sinh viên" required>
+
+            <button type="button" id="addBtn" onclick="addOrUpdateStudent()">Thêm sinh viên</button>
+        </form>
+    </section>
+
+    <!-- Phần hiển thị danh sách sinh viên -->
+    <section id="viewStudents">
+        <h1>Danh Sách Sinh Viên</h1>
+        <input type="file" id="uploadExcel" accept=".xlsx" />
+        <table id="studentTable">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã sinh viên</th>
+                    <th>Tên sinh viên</th>
+                    <th>Tuổi</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Sinh viên sẽ được thêm vào đây -->
+            </tbody>
+        </table>
+    </section>
+
+    <script>
+        let students = [];
+        let editingIndex = -1;  // Biến dùng để theo dõi sinh viên đang được chỉnh sửa
+
+        // Hàm chuyển đổi giữa các phần của trang
+        function showSection(sectionId) {
+            document.querySelectorAll('section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        // Hàm thêm hoặc cập nhật sinh viên
+        function addOrUpdateStudent() {
+            const id = document.getElementById("studentId").value;
+            const name = document.getElementById("studentName").value;
+            const age = document.getElementById("studentAge").value;
+
+            if (!id || !name || !age) {
+                alert("Vui lòng nhập đủ thông tin.");
+                return;
+            }
+
+            const student = { id, name, age };
+
+            if (editingIndex === -1) {
+                students.push(student);
+                alert("Thêm sinh viên thành công!");
+            } else {
+                students[editingIndex] = student;
+                alert("Cập nhật sinh viên thành công!");
+                editingIndex = -1;
+                document.getElementById("formTitle").innerText = "Thêm Sinh Viên";
+                document.getElementById("addBtn").innerText = "Thêm sinh viên";
+            }
+
+            renderStudentTable();
+            clearForm();
+        }
+
+        // Hàm sửa sinh viên
+        function editStudent(index) {
+            const student = students[index];
+            document.getElementById("studentId").value = student.id;
+            document.getElementById("studentName").value = student.name;
+            document.getElementById("studentAge").value = student.age;
+
+            editingIndex = index;
+            document.getElementById("formTitle").innerText = "Chỉnh sửa Sinh Viên";
+            document.getElementById("addBtn").innerText = "Cập nhật sinh viên";
+
+            showSection('addStudent');
+        }
+
+        // Hàm xóa sinh viên
+        function deleteStudent(index) {
+            const confirmation = confirm("Bạn có chắc chắn muốn xóa sinh viên này?");
+            if (confirmation) {
+                students.splice(index, 1);
+                renderStudentTable();
+            }
+        }
+
+        // Hàm hiển thị danh sách sinh viên
+        function renderStudentTable() {
+            const tableBody = document.querySelector("#studentTable tbody");
+            tableBody.innerHTML = "";
+
+            students.forEach((student, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td> <!-- Cột số thứ tự -->
+                        <td>${student.id}</td>
+                        <td>${student.name}</td>
+                        <td>${student.age}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editStudent(${index})">Sửa</button>
+                            <button class="delete-btn" onclick="deleteStudent(${index})">Xóa</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // Hàm xóa các giá trị trong form
+        function clearForm() {
+            document.getElementById("studentId").value = "";
+            document.getElementById("studentName").value = "";
+            document.getElementById("studentAge").value = "";
+        }
+
+        // Hàm xử lý nhập file Excel
+        document.getElementById('uploadExcel').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                jsonData.forEach(row => {
+                    const student = {
+                        id: row['Mã sinh viên'],
+                        name: row['Tên sinh viên'],
+                        age: row['Tuổi']
+                    };
+                    students.push(student);
+                });
+
+                renderStudentTable();
+                alert('Đã nhập danh sách sinh viên từ file Excel!');
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+
+</body>
+</html>
